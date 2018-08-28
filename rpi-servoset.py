@@ -1,4 +1,6 @@
-import pygame, serial, sys
+#!/usr/bin/python2
+
+import pygame, serial, sys, os
 from pygame.locals import *
 from time import sleep
 
@@ -12,10 +14,11 @@ BGCOLOUR = BLACK
 PANELCOLOUR = GREY
 
 # button configuration for RPi
+TASK_SWITCH_PIN = int(11) #blue
 EXIT_PIN = int(15) #red
 DOWN_PIN = int(16) #white
 UP_PIN = int(13) #yellow
-SELECT_PIN = int(12) #green
+SELECT_PIN = int(22) #green
 
 LeverTypes = {'S': RED,
               'P': BLACK,
@@ -30,7 +33,7 @@ def drawText(surface, font, colour, left, top, text ):
   return blockRect.width, blockRect.height
 
 class Button:
-  def __init__(self, pin, bounceTime):
+  def __init__(self, GPIO, pin, bounceTime):
     self.pin = pin
     GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
@@ -247,15 +250,18 @@ def main():
     import RPi.GPIO as GPIO
     haveRPi = True
     GPIO.setmode(GPIO.BOARD)
-    upButton = Button(UP_PIN, 1000)
-    downButton = Button(DOWN_PIN, 1000)
-    selectButton = Button(SELECT_PIN, 1000)
-    exitButton = Button(EXIT_PIN, 1000)
+    upButton = Button(GPIO, UP_PIN, 1000)
+    downButton = Button(GPIO, DOWN_PIN, 1000)
+    selectButton = Button(GPIO, SELECT_PIN, 1000)
+    exitButton = Button(GPIO, EXIT_PIN, 1000)
+    taskSwitchButton = Button(GPIO, TASK_SWITCH_PIN, 1000)
   except ImportError, e:
     print("No RPi module, proceeding without")
 
 
   pygame.init()
+  if haveRPi:
+    pygame.fastevent.init()
   pygame.mouse.set_visible(False)
   pygame.display.set_caption('Servo4 Setup')
   surface = pygame.display.set_mode((600,480))#, pygame.FULLSCREEN)
@@ -264,7 +270,7 @@ def main():
   sc = ServoController(sys.argv[1])
   levers = []
 
-  frame = open(sys.argv[2])
+  frame = open(sys.argv[2] + ".frame")
   for line in frame:
     line = line.strip()
     if line != "" and line[0] != '#':
@@ -297,6 +303,7 @@ def main():
   current = 0
 
   done = False
+  taskSwitch = False
   while not done:
     surface.fill(BGCOLOUR)
     surface.fill(
@@ -327,19 +334,24 @@ def main():
       elif event.key == pygame.K_g:
         curLever.handleGreen()
     elif event.type == pygame.USEREVENT:
-      if event.pin == PIN_UP:
+      if event.pin == EXIT_PIN:
+        done = True
+      elif event.pin == TASK_SWITCH_PIN:
+        done = True
+        taskSwitch = True
+      elif event.pin == UP_PIN:
         if not curLever.handleYellow() and current < (len(levers) - 1):
           current = current + 1
-      elif event.pin == PIN_DOWN:
+      elif event.pin == DOWN_PIN:
         if not curLever.handleWhite() and current > 0:
           current = current - 1
-        elif event.pin == PIN_SELECT:
-          curLever.handleGreen()
+      elif event.pin == SELECT_PIN:
+        curLever.handleGreen()
 
     pygame.time.Clock().tick(5)
 
   print("Writing frame with {} levers".format(len(levers)))
-  frame = open(sys.argv[2], "w")
+  frame = open(sys.argv[2] + ".frame", "w")
   frame.write("# Board,Servo,Type(S|P|F|-),Normal,Reversed,Pull,Return\n")
   for lever in levers:
     frame.write(
@@ -351,8 +363,13 @@ def main():
         lever.vals[lever.REVERSED],
         lever.vals[lever.PULL],
         lever.vals[lever.RETURN]))
+  frame.close()
 
   pygame.quit()
+
+  if taskSwitch:
+    os.execl("stationmaster/stationmaster.py", "stationmaster.py", sys.argv[2])
+
 
 if __name__ == '__main__':
   main()
