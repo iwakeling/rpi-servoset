@@ -16,8 +16,8 @@ PANELCOLOUR = GREY
 # button configuration for RPi
 TASK_SWITCH_PIN = int(11) #blue
 EXIT_PIN = int(15) #red
-DOWN_PIN = int(16) #white
-UP_PIN = int(13) #yellow
+UP_PIN = int(16) #white
+DOWN_PIN = int(13) #yellow
 SELECT_PIN = int(22) #green
 
 LeverTypes = {'S': RED,
@@ -106,28 +106,32 @@ class Lever:
   def __init__(
       self,
       sc,
-      board,
       idx,
+      board,
+      conn,
       number,
       leverType,
       normal,
       reverse,
       pullSpeed,
-      returnSpeed):
+      returnSpeed,
+      description):
     self.sc = sc
-    self.board = board
     self.idx = idx
+    self.board = board
+    self.conn = conn
     self.number = number
     self.leverType = leverType
     self.colour = LeverTypes[leverType]
-    self.vals = [0, normal, reverse, pullSpeed, returnSpeed]
+    self.vals = [0, normal, reverse, returnSpeed, pullSpeed]
+    self.description = description
     self.state = self.IDLE
     self.val = 0
     self.changed = False
 
   def sendCommand(self):
     self.sc.sendCommand(
-      self.idx,
+      self.conn,
       1 - self.state % 2,
       self.state / 3,
       self.vals[self.state])
@@ -158,17 +162,17 @@ class Lever:
   def draw(self, surface, font, leverWidth, leverHeight, current):
     (plateWidth,plateHeight) = font.size("00")
     selectRect = Rect(
-      leverWidth - 2 + 2 * leverWidth * (self.number -1),
+      leverWidth - 2 + 2 * leverWidth * (self.idx),
       2,
       leverWidth + 2,
       leverHeight - 2)
     handleRect = Rect(
-      (leverWidth * 5 / 4) + 2 * leverWidth * (self.number - 1),
+      (leverWidth * 5 / 4) + 2 * leverWidth * (self.idx),
       4,
       leverWidth / 2,
       leverHeight / 4)
     leverRect = Rect(
-      leverWidth + 2 * leverWidth * (self.number -1),
+      leverWidth + 2 * leverWidth * (self.idx),
       leverHeight / 4,
       leverWidth,
       leverHeight * 3 / 4 - 8)
@@ -189,10 +193,10 @@ class Lever:
       detailsTop = leverHeight + 4
 
       items = [
-        (self.NUM_STATES + 1, "Lever {}".format(self.number)),
+        (self.NUM_STATES + 1, "Lever {} {}".format(self.number, self.description)),
         (self.NUM_STATES + 1, ""),
         (self.NUM_STATES + 1, "Board {}".format(self.board)),
-        (self.NUM_STATES + 1, "Index {}".format(self.idx)),
+        (self.NUM_STATES + 1, "Connector {}".format(self.conn)),
         (self.NORMAL, "Normal Pos: {}".format(self.vals[self.NORMAL])),
         (self.REVERSED, "Reversed Pos: {}".format(self.vals[self.REVERSED])),
         (self.RETURN, "Return Speed: {}".format(self.vals[self.RETURN])),
@@ -231,7 +235,7 @@ class Lever:
       plateRect,
       0)
     tBlock = font.render(
-      "%d" % self.number,
+      "{}".format(self.number),
       True,
       BLACK)
     tBlockRect = tBlock.get_rect()
@@ -275,18 +279,20 @@ def main():
     line = line.strip()
     if line != "" and line[0] != '#':
       fields = line.split(',')
-      if len(fields) == 7:
+      if len(fields) == 9:
         levers.append(
           Lever(
             sc,
-            int(fields[0]),
+            len(levers),
             int(fields[1]),
-            len(levers) + 1,
-            fields[2],
-            int(fields[3]),
+            int(fields[2]),
+            fields[0],
+            fields[3],
             int(fields[4]),
             int(fields[5]),
-            int(fields[6])))
+            int(fields[6]),
+            int(fields[7]),
+            fields[8]))
       else:
         print("Lever %d incorrectly formatted" % len(levers) + 1)
   frame.close()
@@ -326,10 +332,10 @@ def main():
       if event.key == pygame.K_ESCAPE:
         done = True
       elif event.key == pygame.K_w:
-        if not curLever.handleYellow() and current < (len(levers) - 1):
+        if not curLever.handleWhite() and current < (len(levers) - 1):
           current = current + 1
       elif event.key == pygame.K_y:
-        if not curLever.handleWhite() and current > 0:
+        if not curLever.handleYellow() and current > 0:
           current = current - 1
       elif event.key == pygame.K_g:
         curLever.handleGreen()
@@ -340,10 +346,10 @@ def main():
         done = True
         taskSwitch = True
       elif event.pin == UP_PIN:
-        if not curLever.handleYellow() and current < (len(levers) - 1):
+        if not curLever.handleWhite() and current < (len(levers) - 1):
           current = current + 1
       elif event.pin == DOWN_PIN:
-        if not curLever.handleWhite() and current > 0:
+        if not curLever.handleYellow() and current > 0:
           current = current - 1
       elif event.pin == SELECT_PIN:
         curLever.handleGreen()
@@ -355,14 +361,16 @@ def main():
   frame.write("# Board,Servo,Type(S|P|F|-),Normal,Reversed,Pull,Return\n")
   for lever in levers:
     frame.write(
-      "{},{},{},{},{},{},{}\n".format(
+      "{},{},{},{},{},{},{},{},{}\n".format(
+        lever.number,
         lever.board,
-        lever.idx,
+        lever.conn,
         lever.leverType,
         lever.vals[lever.NORMAL],
         lever.vals[lever.REVERSED],
         lever.vals[lever.PULL],
-        lever.vals[lever.RETURN]))
+        lever.vals[lever.RETURN],
+        lever.description))
   frame.close()
 
   pygame.quit()
