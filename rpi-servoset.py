@@ -14,7 +14,6 @@ BGCOLOUR = BLACK
 PANELCOLOUR = GREY
 
 # button configuration for RPi
-TASK_SWITCH_PIN = int(11) #blue
 EXIT_PIN = int(15) #red
 UP_PIN = int(16) #white
 DOWN_PIN = int(13) #yellow
@@ -258,7 +257,6 @@ def main():
     downButton = Button(GPIO, DOWN_PIN, 1000)
     selectButton = Button(GPIO, SELECT_PIN, 1000)
     exitButton = Button(GPIO, EXIT_PIN, 1000)
-    taskSwitchButton = Button(GPIO, TASK_SWITCH_PIN, 1000)
   except ImportError, e:
     print("No RPi module, proceeding without")
 
@@ -309,7 +307,6 @@ def main():
   current = 0
 
   done = False
-  taskSwitch = False
   while not done:
     surface.fill(BGCOLOUR)
     surface.fill(
@@ -342,9 +339,6 @@ def main():
     elif event.type == pygame.USEREVENT:
       if event.pin == EXIT_PIN:
         done = True
-      elif event.pin == TASK_SWITCH_PIN:
-        done = True
-        taskSwitch = True
       elif event.pin == UP_PIN:
         if not curLever.handleWhite() and current < (len(levers) - 1):
           current = current + 1
@@ -374,10 +368,6 @@ def main():
   frame.close()
 
   pygame.quit()
-
-  if taskSwitch:
-    os.execl("stationmaster/stationmaster.py", "stationmaster.py", sys.argv[2])
-
 
 if __name__ == '__main__':
   main()
