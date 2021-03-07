@@ -9,6 +9,7 @@ BLACK       = (   0,   0,   0 )
 RED         = ( 255,   0,   0 )
 BLUE        = (   0,   0, 128 )
 GREY        = ( 128, 128, 128 )
+YELLOW      = (   0,  64,  64 )
 
 BGCOLOUR = BLACK
 PANELCOLOUR = GREY
@@ -30,6 +31,43 @@ def drawText(surface, font, colour, left, top, text ):
   blockRect.topleft = ( left, top )
   surface.blit( block, blockRect )
   return blockRect.width, blockRect.height
+
+
+class Debug:
+  MAX_ITEMS = 5
+  window = None
+
+  def __init__(self):
+    self.trace = []
+
+  def setSurface(self, surface, font, left, top):
+    self.surface = surface
+    self.font = font
+    self.left = left
+    self.top = top
+
+  def addTrace(self, marker):
+    if self is not None:
+      if len(self.trace) == self.MAX_ITEMS:
+        self.trace = self.trace[1:-1]
+      self.trace.append(marker)
+      self. surface.fill(
+        BGCOLOUR,
+        Rect(
+          self.left,
+          self.top,
+          self.surface.get_width() - self.left,
+          self.surface.get_height() - self.top))
+      self.draw()
+      pygame.display.update()
+
+
+  def draw(self):
+    top = self.top
+    for marker in self.trace:
+      (w,h) = drawText(self.surface, self.font, YELLOW, self.left, top, marker)
+      top = top + h
+
 
 class Button:
   def __init__(self, GPIO, pin, bounceTime):
@@ -244,8 +282,16 @@ class Lever:
 
 
 def main():
-  if len(sys.argv) < 3:
-    print("Usage\n{} <port> <frame-file>\n".format(sys.argv[0]))
+  args = sys.argv[1:]
+
+  if len(args) > 0 and args[0] == "-d":
+    print("Enabling debug window\n")
+    Debug.window = Debug()
+    args = args[1:]
+
+  if len(args) != 2:
+    print("Usage\n{} [-d] <port> <frame-file>\n".format(sys.argv[0]))
+    print("got {} args: {}\n".format(len(args), args))
     exit(1)
 
   haveRPi = False
@@ -269,10 +315,14 @@ def main():
   surface = pygame.display.set_mode((600,480))#, pygame.FULLSCREEN)
   font = pygame.font.Font( 'freesansbold.ttf', 18 )
 
-  sc = ServoController(sys.argv[1])
+  if Debug.window is not None:
+    Debug.window.setSurface(surface, font, 300, 100)
+
+  sc = ServoController(args[0])
   levers = []
 
-  frame = open(sys.argv[2] + ".frame")
+  Debug.window.addTrace("Reading frame file")
+  frame = open(args[1] + ".frame")
   for line in frame:
     line = line.strip()
     if line != "" and line[0] != '#':
@@ -292,7 +342,7 @@ def main():
             int(fields[7]),
             fields[8]))
       else:
-        print("Lever %d incorrectly formatted" % len(levers) + 1)
+        print("Lever {} incorrectly formatted".format(len(levers) + 1))
   frame.close()
 
   maxLeverWidth = surface.get_width() / (1 + len(levers) * 2)
@@ -321,37 +371,51 @@ def main():
 
     for lever in levers:
       lever.draw(surface, font, leverWidth, leverHeight, lever == curLever)
+    if Debug.window != None:
+      Debug.window.draw()
     pygame.display.update()
 
     # for event in pygame.event.get():
     event = pygame.event.wait()
+    Debug.window.addTrace("got event")
+    print("got event\n")
     if event.type == pygame.KEYDOWN:
       if event.key == pygame.K_ESCAPE:
+        Debug.window.addTrace("escape pressed")
         done = True
       elif event.key == pygame.K_w:
+        Debug.window.addTrace("w pressed")
         if not curLever.handleWhite() and current < (len(levers) - 1):
           current = current + 1
       elif event.key == pygame.K_y:
+        Debug.window.addTrace("y pressed")
         if not curLever.handleYellow() and current > 0:
           current = current - 1
       elif event.key == pygame.K_g:
+        Debug.window.addTrace("g pressed")
         curLever.handleGreen()
     elif event.type == pygame.USEREVENT:
       if event.pin == EXIT_PIN:
+        Debug.window.addTrace("exit btn pressed")
         done = True
       elif event.pin == UP_PIN:
+        Debug.window.addTrace("up btn pressed")
         if not curLever.handleWhite() and current < (len(levers) - 1):
           current = current + 1
       elif event.pin == DOWN_PIN:
+        Debug.window.addTrace("down btn pressed")
         if not curLever.handleYellow() and current > 0:
           current = current - 1
       elif event.pin == SELECT_PIN:
+        Debug.window.addTrace("select btn pressed")
         curLever.handleGreen()
+      else:
+        Debug.window.addTrace("unknown btn {} pressed".format(event.pin))
 
     pygame.time.Clock().tick(5)
 
-  print("Writing frame with {} levers".format(len(levers)))
-  frame = open(sys.argv[2] + ".frame", "w")
+  Debug.window.addTrace("Writing frame with {} levers".format(len(levers)))
+  frame = open(args[1] + ".frame", "w")
   frame.write("# Board,Servo,Type(S|P|F|-),Normal,Reversed,Pull,Return\n")
   for lever in levers:
     frame.write(
