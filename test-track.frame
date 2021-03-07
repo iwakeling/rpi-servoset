@@ -1,2 +1,2 @@
 # Board,Servo,Type(S|P|F|-),Normal,Reversed,Pull,Return
-0,0,P,155,109,6,6
+1,0,0,P,121,130,6,8,turnout
