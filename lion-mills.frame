@@ -1,5 +1,5 @@
-# Name,Board,Servo,Type(S|P|F|-),Normal,Reversed,Pull,Return,Description
-1,0,0,S,138,128,5,3,home
+# Name,Board,servo,Type(S|P|F|-),Normal-pos,Reversed-pos,Pull-speed,Return-speed,Description
+1,0,0,S,144,128,5,2,home
 2,0,1,S,133,129,2,4,starter
 3,0,0,-,0,0,0,0,spare
 4,1,0,F,0,0,0,0,FPL, T1
