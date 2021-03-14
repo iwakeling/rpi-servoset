@@ -253,7 +253,7 @@ LeverFrame::Lever::Lever(
     0,
     0,
     0,
-    values.next().value());
+    values.next().second);
   fields_[0].adjustPos_ = [x,y](Field* field)
                           {
                               field->pos_.x = x + (spacing() - field->pos_.w) / 2;
@@ -265,9 +265,9 @@ LeverFrame::Lever::Lever(
     Field::Integer,
     0,
     0,
-    std::stoi(values.next().value()),
+    std::stoi(values.next().second),
     "Board: ");
-  connector_ = std::stoi(values.next().value());
+  connector_ = std::stoi(values.next().second);
   fields_.emplace_back(
     hposBase += fieldSpace,
     Field::Integer,
@@ -275,7 +275,7 @@ LeverFrame::Lever::Lever(
     0,
     connector_,
     "Connector: ");
-  auto type_str = values.next().value();
+  auto type_str = values.next().second;
   type_ = Lever::to_type(type_str);
   fields_.emplace_back(0, Field::Hidden, 0, 0, 0, type_str);
   fields_.emplace_back(
@@ -283,7 +283,7 @@ LeverFrame::Lever::Lever(
     Field::Editable | Field::Integer,
     0,
     255,
-    std::stoi(values.next().value()),
+    std::stoi(values.next().second),
     "Normal Position: ",
     ServoController::Normal,
     ServoController::Position);
@@ -292,7 +292,7 @@ LeverFrame::Lever::Lever(
     Field::Editable | Field::Integer,
     0,
     255,
-    std::stoi(values.next().value()),
+    std::stoi(values.next().second),
     "Reversed Position: ",
     ServoController::Reversed,
     ServoController::Position);
@@ -301,7 +301,7 @@ LeverFrame::Lever::Lever(
     Field::Editable | Field::Integer,
     0,
     6,
-    std::stoi(values.next().value()),
+    std::stoi(values.next().second),
     "Pull Speed: ",
     ServoController::Normal,
     ServoController::Speed);
@@ -310,7 +310,7 @@ LeverFrame::Lever::Lever(
     Field::Editable | Field::Integer,
     0,
     6,
-    std::stoi(values.next().value()),
+    std::stoi(values.next().second),
     "Return Speed: ",
     ServoController::Reversed,
     ServoController::Speed);

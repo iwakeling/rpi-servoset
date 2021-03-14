@@ -11,7 +11,7 @@ FONTCONFIG_FLAGS := `pkg-config --cflags fontconfig`
 FONTCONFIG_LIBS := `pkg-config --libs fontconfig`
 
 CPPFLAGS := $(LOCAL_LIB_FLAGS) $(SDL_FLAGS) $(SDLGFX_FLAGS) $(FONTCONFIG_FLAGS)
-CXXFLAGS += --std=c++17
-LIBS := $(SDL_LIBS) $(SDLGFX_LIBS) $(FONTCONFIG_LIBS) $(LOCAL_LIBS)
+CXXFLAGS += --std=c++14 -pthread
+LIBS := $(SDL_LIBS) $(SDLGFX_LIBS) $(FONTCONFIG_LIBS) $(LOCAL_LIBS) -pthread
 
 $(call build-executable,rpi-servoset,$(SOURCES),$(LIBS))

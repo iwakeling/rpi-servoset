@@ -5,7 +5,6 @@
 #define TOKENISER_H
 
 #include <string>
-#include <optional>
 
 class Tokeniser
 {
@@ -16,14 +15,15 @@ public:
   {
   }
 
-  std::optional<std::string> next()
+  std::pair<bool,std::string> next()
   {
-    std::optional<std::string> result;
+    std::pair<bool,std::string> result{false,""};
     if( pos_ != std::string::npos )
     {
       auto start = pos_;
       pos_ = input_.find(',', start);
-      result = std::optional<std::string>(input_.substr(start, pos_ - start));
+      result.first = true;
+      result.second = input_.substr(start, pos_ - start);
       if( pos_ != std::string::npos )
       {
         pos_++;
