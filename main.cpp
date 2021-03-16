@@ -43,6 +43,7 @@ int main(int argc, char** argv)
   std::string frameFileName;
   std::string buttonFileName;
   std::string serialPort;
+  bool fullScreen = false;
 
   if( !Opt::parseCmdLine(argc, argv, {
         Opt(
@@ -66,6 +67,13 @@ int main(int argc, char** argv)
           [&serialPort](std::cmatch const& m)
           {
             serialPort = m[1];
+          }),
+        Opt(
+          "--fullScreen",
+          "Use full screen window",
+          [&fullScreen](std::cmatch const& m)
+          {
+            fullScreen = true;
           })}) )
   {
     return 1;
@@ -110,19 +118,24 @@ int main(int argc, char** argv)
       }
     }
 
+    int windowFlags = SDL_WINDOW_SHOWN;
+    if( fullScreen )
+    {
+      windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    }
     auto window = sdl::create_window(
       "RPI ServoSet",
       SDL_WINDOWPOS_UNDEFINED,
       SDL_WINDOWPOS_UNDEFINED,
       640,
       480,
-      SDL_WINDOW_BORDERLESS | SDL_WINDOW_INPUT_FOCUS);
+      windowFlags);
     if( !window )
     {
       sdl::throw_error("Failed to create SDL window: ");
     }
     SDL_RaiseWindow(window.get());
-    SDL_Rect displayBounds;
+    SDL_Rect displayBounds{0, 0, 0, 0};
     SDL_GetWindowSize(window.get(), &displayBounds.w, &displayBounds.h);
 
     auto renderer = sdl::create_renderer(window, -1, SDL_RENDERER_ACCELERATED);
